@@ -1,8 +1,10 @@
 import 'dart:io';
 import 'package:date_format/date_format.dart';
+import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
+import '../models/summary.dart';
 import '/models/item.dart';
 import '/models/stock_log.dart';
 
@@ -108,5 +110,51 @@ class SQFLiteProvider implements DatabaseProvider {
       }).toList();
     });
     return Future.value(result);
+  }
+
+  Future<StockItem> _getStockItem(String name) async {
+    final items = await _db!.query('Item', where: "name=?", whereArgs: [name]);
+    return items.map((item) => StockItem.fromJson(item)).toList().first;
+  }
+
+  Future<StockSummary> getSummary(DateTime dateTime) async {
+    final logs = await _db!.query('Log');
+    final stockLogs = <StockLog>[];
+
+    for (final log in logs) {
+      final itemName = log["itemName"].toString();
+      final item = await _getStockItem(itemName);
+      final changeDate = DateTime.parse(log["date"].toString());
+      final now = dateTime;
+      bool isSameDay = changeDate.year == now.year &&
+          changeDate.month == now.month &&
+          changeDate.day == now.day;
+
+      if (isSameDay) {
+        stockLogs.add(
+          StockLog(
+              item: item,
+              dateTime: changeDate,
+              change: int.parse(log["change"].toString())),
+        );
+      }
+    }
+
+    int soldQty = 0, purchasedQty = 0;
+    double earning = 0, spending = 0;
+    stockLogs.forEach((log) {
+      if (log.change < 0) {
+        soldQty += (0 - log.change);
+        earning += (log.item.sp * (0 - log.change));
+      } else {
+        purchasedQty += log.change;
+        spending += (log.item.cp * log.change);
+      }
+    });
+    return StockSummary(
+        soldQty: soldQty,
+        purchasedQty: purchasedQty,
+        earning: earning,
+        spending: spending);
   }
 }

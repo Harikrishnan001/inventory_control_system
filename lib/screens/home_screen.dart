@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:date_format/date_format.dart';
+import 'package:ics/services/database.dart';
 import '/constants.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -11,6 +12,26 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  int soldQty = 0, purchasedQty = 0;
+  double earning = 0.0, spending = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    SQFLiteProvider().getSummary(DateTime.now()).then((summary) {
+      soldQty = summary.soldQty;
+      purchasedQty = summary.purchasedQty;
+      earning = summary.earning;
+      spending = summary.spending;
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -46,8 +67,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(
+                    const Padding(
+                      padding: EdgeInsets.symmetric(
                         horizontal: ICSPadding.medium,
                         vertical: ICSPadding.large,
                       ),
@@ -66,17 +87,17 @@ class _HomeScreenState extends State<HomeScreen> {
                           Expanded(
                             child: DetailsColumn(
                               title1: 'Sold Quantity',
-                              qty1: 0,
+                              qty1: soldQty,
                               title2: 'Earning(INR)',
-                              qty2: 0,
+                              qty2: earning,
                             ),
                           ),
                           Expanded(
                             child: DetailsColumn(
                               title1: 'Purchased Quantity',
-                              qty1: 500,
+                              qty1: purchasedQty,
                               title2: 'Spendings(INR)',
-                              qty2: 9000000,
+                              qty2: spending,
                             ),
                           ),
                         ],
@@ -454,7 +475,7 @@ class DetailsColumn extends StatelessWidget {
   final String title1;
   final String title2;
   final int qty1;
-  final int qty2;
+  final double qty2;
   const DetailsColumn({
     Key? key,
     required this.title1,
